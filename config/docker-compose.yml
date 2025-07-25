@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  online_shop:
+    image: vjstylose/online_shopping_web:prod
+    container_name: online_shopping_web
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 2
+      start_period: 5s
+    networks:
+      - online_shop
+
+networks:
+  online_shop:
+    driver: bridge

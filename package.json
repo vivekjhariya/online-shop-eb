@@ -1,0 +1,102 @@
+{
+  "name": "online-shopping-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Modern online shopping web application built with React, Vite, and Bootstrap",
+  "keywords": [
+    "react",
+    "vite",
+    "bootstrap",
+    "ecommerce",
+    "shopping",
+    "aws"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "homepage": ".",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "start": "vite preview --host --port 5173",
+    "serve": "serve -s dist -l 3000",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:ui": "vitest --ui",
+    "test:ci": "vitest run --coverage --reporter=junit --outputFile=test-results.xml",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "clean": "rm -rf dist node_modules coverage test-results.xml playwright-report",
+    "docker:up": "docker-compose up",
+    "docker:build": "docker-compose build",
+    "docker:dev": "docker build -f Dockerfile.dev -t online-shopping-web:dev . && docker run -p 5173:5173 -v $(pwd):/app -v /app/node_modules online-shopping-web:dev",
+    "docker:stop": "docker-compose down",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "ci:test": "npm run lint && npm run test:ci && npm run build && npm run test:e2e",
+    "docker:build:prod": "docker build -t online-shopping-web .",
+    "docker:run": "docker run -p 80:80 online-shopping-web"
+  },
+  "dependencies": {
+    "@emailjs/browser": "^4.4.1",
+    "@fortawesome/fontawesome-svg-core": "^7.0.0",
+    "@fortawesome/free-brands-svg-icons": "^7.0.0",
+    "@fortawesome/free-solid-svg-icons": "^7.0.0",
+    "@fortawesome/react-fontawesome": "^0.2.2",
+    "bootstrap": "^5.3.3",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.4",
+    "react-dom": "^18.3.1",
+    "react-google-recaptcha": "^3.1.0",
+    "react-modal": "^3.16.1",
+    "react-responsive": "^10.0.0",
+    "react-router-dom": "^7.7.1",
+    "react-search-autocomplete": "^8.5.2",
+    "react-spinners": "^0.17.0",
+    "react-toastify": "^11.0.5",
+    "react-tooltip": "^5.28.0",
+    "serve": "^10.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.8.0",
+    "@playwright/test": "^1.40.0",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.1.4",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.5.1",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^9.8.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.9",
+    "globals": "^16.3.0",
+    "jest": "^30.0.0",
+    "jest-environment-jsdom": "^30.0.0",
+    "sass": "^1.89.2",
+    "vite": "^7.0.6",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

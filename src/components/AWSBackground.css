@@ -1,0 +1,191 @@
+/* AWS Background Component Styles */
+
+.aws-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+    overflow: hidden;
+    background: radial-gradient(ellipse at center, #232F3E 0%, #161E2D 100%);
+}
+
+/* Animated Grid Overlay */
+.grid-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.1;
+}
+
+.grid-line {
+    position: absolute;
+    background: linear-gradient(to bottom, 
+        transparent 0%, 
+        rgba(255, 153, 0, 0.3) 50%, 
+        transparent 100%);
+    width: 1px;
+    height: 100%;
+    animation: gridPulse 4s ease-in-out infinite;
+}
+
+.grid-line.horizontal {
+    background: linear-gradient(to right, 
+        transparent 0%, 
+        rgba(75, 146, 219, 0.3) 50%, 
+        transparent 100%);
+    width: 100%;
+    height: 1px;
+}
+
+@keyframes gridPulse {
+    0%, 100% {
+        opacity: 0.1;
+        transform: scaleY(1);
+    }
+    50% {
+        opacity: 0.3;
+        transform: scaleY(1.1);
+    }
+}
+
+/* Floating Orbs */
+.floating-orb {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, 
+        rgba(255, 153, 0, 0.2) 0%, 
+        rgba(75, 146, 219, 0.1) 50%, 
+        transparent 100%);
+    animation: floatOrb linear infinite;
+    filter: blur(1px);
+}
+
+@keyframes floatOrb {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.6;
+    }
+    90% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: translate(-100px, -100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* AWS Pattern Elements */
+.aws-pattern {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.pattern-element {
+    position: absolute;
+    border-radius: 50%;
+    animation: patternMove 15s linear infinite;
+}
+
+.pattern-1 {
+    top: 10%;
+    left: 10%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, 
+        rgba(255, 153, 0, 0.1) 0%, 
+        transparent 70%);
+    animation-duration: 20s;
+}
+
+.pattern-2 {
+    top: 60%;
+    right: 10%;
+    width: 150px;
+    height: 150px;
+    background: radial-gradient(circle, 
+        rgba(75, 146, 219, 0.1) 0%, 
+        transparent 70%);
+    animation-duration: 25s;
+    animation-direction: reverse;
+}
+
+.pattern-3 {
+    bottom: 20%;
+    left: 50%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, 
+        rgba(255, 153, 0, 0.05) 0%, 
+        rgba(75, 146, 219, 0.05) 50%,
+        transparent 70%);
+    animation-duration: 30s;
+}
+
+@keyframes patternMove {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    25% {
+        transform: translate(50px, -30px) rotate(90deg) scale(1.1);
+    }
+    50% {
+        transform: translate(-30px, 50px) rotate(180deg) scale(0.9);
+    }
+    75% {
+        transform: translate(-50px, -50px) rotate(270deg) scale(1.2);
+    }
+    100% {
+        transform: translate(0, 0) rotate(360deg) scale(1);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .floating-orb {
+        display: none; /* Hide orbs on mobile for performance */
+    }
+    
+    .grid-overlay {
+        opacity: 0.05;
+    }
+    
+    .pattern-element {
+        animation-duration: 10s; /* Faster animations on mobile */
+    }
+}
+
+/* High contrast mode adjustments */
+@media (prefers-contrast: high) {
+    .aws-background {
+        background: #000000;
+    }
+    
+    .grid-line {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .floating-orb,
+    .pattern-element {
+        display: none;
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .floating-orb,
+    .pattern-element,
+    .grid-line {
+        animation: none;
+    }
+}

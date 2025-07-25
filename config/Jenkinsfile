@@ -1,0 +1,243 @@
+pipeline {
+    agent any
+    
+    environment {
+        NODE_VERSION = '20'
+        DOCKER_IMAGE = 'online-shopping-web'
+        DOCKER_TAG = "${BUILD_NUMBER}"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo 'Code checked out successfully'
+            }
+        }
+        
+        stage('Setup Node.js') {
+            steps {
+                script {
+                    // Install Node.js if not available
+                    sh '''
+                        node --version || (
+                            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+                            sudo apt-get install -y nodejs
+                        )
+                    '''
+                }
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+                echo 'Dependencies installed successfully'
+            }
+        }
+        
+        stage('Lint Code') {
+            steps {
+                sh 'npm run lint'
+                echo 'Code linting completed'
+            }
+            post {
+                always {
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: '.',
+                        reportFiles: 'eslint-report.html',
+                        reportName: 'ESLint Report'
+                    ])
+                }
+            }
+        }
+        
+        stage('Unit Tests') {
+            steps {
+                sh 'npm run test:ci'
+                echo 'Unit tests completed'
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: 'test-results.xml'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'coverage',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
+            }
+        }
+        
+        stage('Build Application') {
+            steps {
+                sh 'npm run build'
+                echo 'Application built successfully'
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'dist/**/*', fingerprint: true
+                }
+            }
+        }
+        
+        stage('Security Scan') {
+            steps {
+                script {
+                    try {
+                        sh 'npm audit --audit-level=high'
+                        echo 'Security scan passed'
+                    } catch (Exception e) {
+                        echo 'Security vulnerabilities found, but continuing...'
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                echo 'Docker image is now built and pushed via CI/CD or manually. Skipping local build.'
+            }
+        }
+        
+        stage('E2E Tests') {
+            steps {
+                script {
+                    try {
+                        // Start application in background
+                        sh 'npm run start &'
+                        sh 'sleep 10' // Wait for app to start
+                        
+                        // Run E2E tests
+                        sh 'npx playwright install --with-deps'
+                        sh 'npm run test:e2e'
+                        echo 'E2E tests completed successfully'
+                    } catch (Exception e) {
+                        echo 'E2E tests failed, but continuing...'
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: 'e2e-results.xml'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'playwright-report',
+                        reportFiles: 'index.html',
+                        reportName: 'E2E Test Report'
+                    ])
+                }
+            }
+        }
+        
+        stage('Performance Tests') {
+            steps {
+                script {
+                    try {
+                        // Basic performance test using curl
+                        sh '''
+                            echo "Running basic performance tests..."
+                            for i in {1..5}; do
+                                curl -o /dev/null -s -w "Response time: %{time_total}s\\n" http://localhost:5173/ || true
+                            done
+                        '''
+                    } catch (Exception e) {
+                        echo 'Performance tests failed, but continuing...'
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to Staging') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    // Deploy to staging environment using Docker Hub image
+                    sh '''
+                        echo "Deploying to staging environment..."
+                        docker pull vjstylose/online_shopping_web:prod
+                        docker run -d -p 8080:80 --name staging-${BUILD_NUMBER} vjstylose/online_shopping_web:prod
+                    '''
+                }
+                echo 'Deployed to staging successfully'
+            }
+        }
+        
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                script {
+                    // Deploy to production environment using Docker Hub image
+                    sh '''
+                        echo "Deploying to production environment..."
+                        docker pull vjstylose/online_shopping_web:prod
+                        docker run -d -p 80:80 --name production-${BUILD_NUMBER} vjstylose/online_shopping_web:prod
+                    '''
+                }
+                echo 'Deployed to production successfully'
+            }
+        }
+    }
+    
+    post {
+        always {
+            // Clean up
+            sh '''
+                pkill -f "npm run start" || true
+                docker stop staging-${BUILD_NUMBER} || true
+                docker rm staging-${BUILD_NUMBER} || true
+            '''
+            
+            // Archive test results
+            archiveArtifacts artifacts: 'coverage/**/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
+            
+            // Clean workspace
+            cleanWs()
+        }
+        
+        success {
+            echo 'Pipeline completed successfully!'
+            // Send success notification
+            emailext (
+                subject: "✅ Build Success: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build completed successfully. Check the results at ${env.BUILD_URL}",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        
+        failure {
+            echo 'Pipeline failed!'
+            // Send failure notification
+            emailext (
+                subject: "❌ Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build failed. Check the logs at ${env.BUILD_URL}",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+        
+        unstable {
+            echo 'Pipeline completed with warnings!'
+            // Send unstable notification
+            emailext (
+                subject: "⚠️ Build Unstable: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                body: "Build completed with warnings. Check the results at ${env.BUILD_URL}",
+                to: "${env.CHANGE_AUTHOR_EMAIL}"
+            )
+        }
+    }
+}

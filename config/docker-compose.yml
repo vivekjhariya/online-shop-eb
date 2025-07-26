@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   online_shop:
-    image: vjstylose/online_shopping_web:prod
+    image: vjstylose/online_shopping_web:latest
     container_name: online_shopping_web
     ports:
       - "80:80"

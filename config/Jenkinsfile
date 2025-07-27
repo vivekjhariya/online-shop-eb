@@ -17,19 +17,27 @@ pipeline {
             }
         }
 
+        stage("Trivy FS Scan (Code Base)") {
+            steps {
+                echo "Running Trivy fs scan in table format..."
+                sh '''
+                    mkdir -p trivy-report
+                    trivy fs --scanners vuln,secret --severity MEDIUM,HIGH,CRITICAL \
+                        --format table -o trivy-report/trivy-fs-report.html .
+                '''
+            }
+        }
+
         stage("Pre-Build Cleanup") {
             steps {
                 echo "Removing old containers and images..."
                 sh '''
-                    # Stop & remove container
                     docker ps -aq --filter "name=$IMAGE_NAME" | xargs -r docker stop || true
                     docker ps -aq --filter "name=$IMAGE_NAME" | xargs -r docker rm || true
 
-                    # Remove images
                     docker images -q $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG | xargs -r docker rmi -f || true
                     docker images -q $IMAGE_NAME:$IMAGE_TAG | xargs -r docker rmi -f || true
 
-                    # Remove dangling images
                     docker image prune -f || true
                 '''
             }
@@ -37,28 +45,60 @@ pipeline {
 
         stage("Run Tests") {
             steps {
-                echo "Running tests inside Docker build (test stage)..."
+                echo " Running tests inside Docker build (test stage)..."
                 sh '''
                     docker build --target test -f config/Dockerfile -t $IMAGE_NAME:test .
                 '''
-                echo "Tests passed (no errors)"
+                echo " Tests passed (no errors)"
             }
         }
 
         stage("Build Docker Image") {
             steps {
-                echo "Building Docker image..."
+                echo " Building Docker image..."
                 sh '''
                     docker build -f config/Dockerfile -t $IMAGE_NAME:$IMAGE_TAG .
                     docker tag $IMAGE_NAME:$IMAGE_TAG $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG
                 '''
-                echo "Image tagged as $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG"
+                echo " Image tagged as $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG"
+            }
+        }
+
+        stage("Trivy Image Scan (Built Docker Image)") {
+            steps {
+                echo " Scanning built Docker image with Trivy..."
+                sh '''
+                    trivy image --severity MEDIUM,HIGH,CRITICAL \
+                        --format table -o trivy-report/trivy-image-report.html $DOCKERHUB_USER/$IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage("Publish Trivy Reports") {
+            steps {
+                echo " Publishing Trivy HTML reports to Jenkins UI..."
+                publishHTML([
+                    reportName: 'Trivy FS Report (Source Code)',
+                    reportDir: 'trivy-report',
+                    reportFiles: 'trivy-fs-report.html',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
+                ])
+                publishHTML([
+                    reportName: 'Trivy Image Report (Docker Image)',
+                    reportDir: 'trivy-report',
+                    reportFiles: 'trivy-image-report.html',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
+                ])
             }
         }
 
         stage("Push to DockerHub") {
             steps {
-                echo "☁️ Pushing image to DockerHub..."
+                echo " Pushing image to DockerHub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhubcred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
                         echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
@@ -76,7 +116,7 @@ pipeline {
                     docker-compose -f $COMPOSE_FILE pull
                     docker-compose -f $COMPOSE_FILE up -d --remove-orphans
                 '''
-                echo "Deployment complete!"
+                echo " Deployment complete!"
             }
         }
     }

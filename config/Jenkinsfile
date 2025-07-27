@@ -71,7 +71,7 @@ pipeline {
 
         stage("Deploy via Docker Compose") {
             steps {
-                echo " Deploying via Docker Compose..."
+                echo " Deploying via Docker Compose...."
                 sh '''
                     docker-compose -f $COMPOSE_FILE pull
                     docker-compose -f $COMPOSE_FILE up -d --remove-orphans
